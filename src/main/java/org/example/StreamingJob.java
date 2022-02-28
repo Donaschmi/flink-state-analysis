@@ -18,12 +18,10 @@
 
 package org.example;
 
-import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.functions.RichFlatMapFunction;
+import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
-import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -31,7 +29,6 @@ import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.util.Collector;
 
 /**
  * Simple Streaming job to demonstrate the impact of a dataset size on the resource utilization
@@ -49,7 +46,7 @@ public class StreamingJob {
 		// split up the lines in pairs (2-tuples) containing: (key,value)
 		text.map(new Tokenizer())
 				.keyBy(value -> value.f0)
-				.flatMap(new Stater());
+				.map(new Stater());
 
 		env.execute("Flink Streaming Java API Skeleton");
 	}
@@ -71,19 +68,21 @@ public class StreamingJob {
 			return new Tuple2<>(tokens[0], tokens[1]);
 		}
 	}
+
 	/**
 	 * Dummy user-defined FlatMapFunction that stores a Keyed-Stream in state as a list
 	 * of seen values.
 	 */
-	public static final class Stater extends RichFlatMapFunction<Tuple2<String, String>, Tuple2<String, String>> {
+	public static final class Stater extends RichMapFunction<Tuple2<String, String>, Tuple2<String, String>> {
 
 		private transient ListState<Tuple2<String, String>> list;
 
 		@Override
-		public void flatMap(Tuple2<String, String> value, Collector<Tuple2<String, String>> out) throws Exception {
+		public Tuple2<String, String> map(Tuple2<String, String> value) throws Exception {
 			list.add(value);
-			out.collect(value); // Not used later in the stream
+			return value;
 		}
+
 		@Override
 		public void open(Configuration config) {
 			ListStateDescriptor<Tuple2<String, String>> descriptor =
