@@ -59,8 +59,7 @@ public class StreamingJob {
 		text.map(new Tokenizer())
 				// group by the tuple field "0" and sum up tuple field "1"
 				.keyBy(value -> value.f0)
-				.flatMap(new Stater())
-				.print();
+				.flatMap(new Stater());
 
 		env.execute("Flink Streaming Java API Skeleton");
 	}
