@@ -19,7 +19,7 @@ def main():
     keys = 10
     key_matching = 0.5
     dataset_size = 1 # In Gigabytes
-    row_size = 1000
+    row_size = 1024
     data_dir = "/home/donatien/GEPICIAD/resource-estimator/xp/sql_illustration/data/tables/"
 
     for o, a in opts:
@@ -39,13 +39,13 @@ def main():
     pathlib.Path(data_dir).mkdir(exist_ok=True, parents=True)
     table_row = "{}|{}\n"
     size_per_table = dataset_size * 1073741824 # in bytes
-    rows_per_table = int(size_per_table / row_size)
+    rows_per_table = int(size_per_table / (row_size + 3)) # Row size + 3 bytes for key (1), separator (1) and EOL (1)
 
     open(data_dir + "table_1.dat", "w").write(''.join(table_row.format(i, 'A'*10) for i in range(keys)))
     with open(data_dir + "table_2.dat", "w") as fd:
         for i in range(dataset_size):
             print("Writing {}/{}Gb".format(i+1, dataset_size))
-            fd.write(''.join(table_row.format(randint(0, int(keys / key_matching)), 'B'*(row_size-3)) for j in range(int(rows_per_table / dataset_size))))
+            fd.write(''.join(table_row.format(randint(0, int(keys / key_matching)), 'B'*(row_size)) for j in range(int(rows_per_table / dataset_size))))
 
 if __name__ == "__main__":
     main()
