@@ -18,12 +18,10 @@
 
 package org.example;
 
-import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.functions.RichFlatMapFunction;
+import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.common.state.ListStateDescriptor;
-import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -31,7 +29,6 @@ import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.util.Collector;
 
 /**
  * Skeleton for a Flink Streaming Job.
@@ -45,7 +42,7 @@ import org.apache.flink.util.Collector;
  * <p>If you change the name of the main class (with the public static void main(String[] args))
  * method, change the respective entry in the POM.xml file (simply search for 'mainClass').
  */
-public class StreamingJob {
+public class ListStateTest {
 
 	public static void main(String[] args) throws Exception {
 		ParameterTool params = ParameterTool.fromArgs(args);
@@ -59,7 +56,7 @@ public class StreamingJob {
 		text.map(new Tokenizer())
 				// group by the tuple field "0" and sum up tuple field "1"
 				.keyBy(value -> value.f0)
-				.flatMap(new Stater())
+				.map(new Stater())
 				.print();
 
 		env.execute("Flink Streaming Java API Skeleton");
@@ -87,14 +84,14 @@ public class StreamingJob {
 	 * FlatMapFunction. The function takes a line (String) and splits it into multiple pairs in the
 	 * form of "(word,1)" ({@code Tuple2<String, Integer>}).
 	 */
-	public static final class Stater extends RichFlatMapFunction<Tuple2<String, String>, Tuple2<String, String>> {
+	public static final class Stater extends RichMapFunction<Tuple2<String, String>, Tuple2<String, String>> {
 
 		private transient ListState<Tuple2<String, String>> list;
 
 		@Override
-		public void flatMap(Tuple2<String, String> value, Collector<Tuple2<String, String>> out) throws Exception {
+		public Tuple2<String, String> map(Tuple2<String, String> value) throws Exception {
 			list.add(value);
-			out.collect(value);
+			return value;
 		}
 		@Override
 		public void open(Configuration config) {
