@@ -31,16 +31,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 /**
- * Skeleton for a Flink Streaming Job.
- *
- * <p>For a tutorial how to write a Flink streaming application, check the
- * tutorials and examples on the <a href="https://flink.apache.org/docs/stable/">Flink Website</a>.
- *
- * <p>To package your application into a JAR file for execution, run
- * 'mvn clean package' on the command line.
- *
- * <p>If you change the name of the main class (with the public static void main(String[] args))
- * method, change the respective entry in the POM.xml file (simply search for 'mainClass').
+ * Simple Streaming job to demonstrate the impact of a dataset size on the resource utilization
  */
 public class ListStateTest {
 
@@ -52,12 +43,10 @@ public class ListStateTest {
 
 		DataStream<String> text = env.readTextFile(sourceTextPath);
 
-		// split up the lines in pairs (2-tuples) containing: (word,1)
+		// split up the lines in pairs (2-tuples) containing: (key,value)
 		text.map(new Tokenizer())
-				// group by the tuple field "0" and sum up tuple field "1"
 				.keyBy(value -> value.f0)
-				.map(new Stater())
-				.print();
+				.map(new Stater());
 
 		env.execute("Flink Streaming Java API Skeleton");
 	}
@@ -67,9 +56,9 @@ public class ListStateTest {
 	// *************************************************************************
 
 	/**
-	 * Implements the string tokenizer that splits sentences into words as a user-defined
-	 * FlatMapFunction. The function takes a line (String) and splits it into multiple pairs in the
-	 * form of "(word,1)" ({@code Tuple2<String, Integer>}).
+	 * Implements the string tokenizer that splits lines into tuples as a user-defined
+	 * MapFunction. The function takes a line (String) and splits it into a pair in the
+	 * form of "(key,value)" ({@code Tuple2<String, String>}).
 	 */
 	public static final class Tokenizer implements MapFunction<String, Tuple2<String, String>> {
 
@@ -79,10 +68,10 @@ public class ListStateTest {
 			return new Tuple2<>(tokens[0], tokens[1]);
 		}
 	}
+
 	/**
-	 * Implements the string tokenizer that splits sentences into words as a user-defined
-	 * FlatMapFunction. The function takes a line (String) and splits it into multiple pairs in the
-	 * form of "(word,1)" ({@code Tuple2<String, Integer>}).
+	 * Dummy user-defined FlatMapFunction that stores a Keyed-Stream in state as a list
+	 * of seen values.
 	 */
 	public static final class Stater extends RichMapFunction<Tuple2<String, String>, Tuple2<String, String>> {
 
@@ -93,6 +82,7 @@ public class ListStateTest {
 			list.add(value);
 			return value;
 		}
+
 		@Override
 		public void open(Configuration config) {
 			ListStateDescriptor<Tuple2<String, String>> descriptor =
