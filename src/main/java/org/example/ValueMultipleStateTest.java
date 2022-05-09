@@ -45,9 +45,9 @@ import org.slf4j.LoggerFactory;
  * <p>If you change the name of the main class (with the public static void main(String[] args))
  * method, change the respective entry in the POM.xml file (simply search for 'mainClass').
  */
-public class ValueStateTest {
+public class ValueMultipleStateTest {
 
-	private static final Logger LOG = LoggerFactory.getLogger(ValueStateTest.class);
+	private static final Logger LOG = LoggerFactory.getLogger(ValueMultipleStateTest.class);
 
 	public static void main(String[] args) throws Exception {
 		ParameterTool params = ParameterTool.fromArgs(args);
@@ -92,8 +92,10 @@ public class ValueStateTest {
 	 */
 	public static final class Stater extends RichMapFunction<Tuple2<String, String>, Tuple2<String, String>> {
 
-		private transient ValueState<Tuple2<String, String>> state;
+		private transient ValueState<Tuple2<String, String>> state1;
+		private transient ValueState<Tuple2<String, String>> state2;
 		private Long iterator = 0L;
+		private int stateSkipper = 0;
 
 		private int keysLeft;
 		private int keysSkipped;
@@ -108,23 +110,33 @@ public class ValueStateTest {
 			if (keysLeft != 0) {
 				if (keysSkipped != -1) {
 					if (iterator % keysSkipped == 0) {
-						state.update(value);
+						state1.update(value);
+						if (stateSkipper == 0)
+							state2.update(value);
 					}
 					iterator++;
 				} else {
-					state.update(value);
+					state1.update(value);
+					if (stateSkipper == 0)
+						state2.update(value);
 				}
 				keysLeft--;
 			}
+			stateSkipper = (stateSkipper + 1) % 2;
 			return value;
 		}
 		@Override
 		public void open(Configuration config) {
-			ValueStateDescriptor<Tuple2<String, String>> descriptor =
+			ValueStateDescriptor<Tuple2<String, String>> descriptor1 =
 					new ValueStateDescriptor<>(
-							"state", // the state name
+							"state1", // the state name
 							TypeInformation.of(new TypeHint<Tuple2<String, String>>() {})); // type information
-			state = getRuntimeContext().getState(descriptor);
+			state1 = getRuntimeContext().getState(descriptor1);
+			ValueStateDescriptor<Tuple2<String, String>> descriptor2 =
+					new ValueStateDescriptor<>(
+							"state2", // the state name
+							TypeInformation.of(new TypeHint<Tuple2<String, String>>() {})); // type information
+			state2 = getRuntimeContext().getState(descriptor2);
 		}
 	}
 }
